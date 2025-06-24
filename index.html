@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FightSwap – Přidat kartičku</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body>
+  <h1>Přidej kartičku</h1>
+  <form id="card-form">
+    <input type="text" placeholder="Jméno bojovníka" id="name" required><br>
+    <input type="text" placeholder="Kontakt (např. IG nebo email)" id="contact" required><br>
+    <input type="number" placeholder="Cena (pro prodej)" id="price"><br>
+    <select id="type">
+      <option value="prodej">Prodej</option>
+      <option value="vymena">Výměna</option>
+    </select><br>
+    <textarea placeholder="Popis" id="description"></textarea><br>
+    <input type="file" id="image" accept="image/*" required><br>
+    <button type="submit">Odeslat</button>
+  </form>
+  <p id="status"></p>
+  <script>
+    const supabase = supabase.createClient(
+      'https://cdigqezwtcisprculyve.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkaWdxZXp3dGNpc3ByY3VseXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MDg2ODYsImV4cCI6MjA2NjE4NDY4Nn0.Y8LlDC08CvysMgwiLlPRBqyEFqHSyr4O4_STzZRGRMI'
+    );
+
+    document.getElementById('card-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const contact = document.getElementById('contact').value;
+      const price = document.getElementById('price').value;
+      const type = document.getElementById('type').value;
+      const description = document.getElementById('description').value;
+      const file = document.getElementById('image').files[0];
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      let { error: uploadError } = await supabase.storage.from('cards').upload(filePath, file);
+      if (uploadError) {
+        document.getElementById('status').textContent = 'Chyba při nahrávání obrázku.';
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage.from('cards').getPublicUrl(filePath);
+      const imageUrl = publicUrlData.publicUrl;
+
+      const { error: insertError } = await supabase.from('cards').insert([{ name, contact, price, type, description, image: imageUrl }]);
+      document.getElementById('status').textContent = insertError ? 'Chyba při ukládání dat.' : 'Kartička úspěšně přidána!';
+    });
+  </script>
+</body>
+</html>
